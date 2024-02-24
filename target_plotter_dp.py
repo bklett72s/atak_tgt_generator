@@ -1,6 +1,11 @@
 #!/usr/bin/python
-#python script to target target data CSV + designation and
+
+#Author: Brandon Klett
+#Description:python script to target target data CSV + designation and
 # reformat into KML file for ingestion into ATAK
+#Date Created: 02/23/2024
+#Date Last Modified: 02/24/204
+
 import csv, mgrs, pyproj, datetime, string, secrets, os
 from zipfile import ZipFile
 
@@ -11,10 +16,24 @@ def read_csv():
     title = []
     with open('./read_dir/tgt.csv', newline='') as csvfile:
         csvparse = csv.reader(csvfile, delimiter=',', quotechar='|')
+        unlabled_tgt_ctr = 0
+        
         for i in csvparse:
-            grid.append(i[0])
-            desig.append(i[1])
-            title.append(i[2])
+            if i[0]:
+                grid.append(i[0])
+                if not i[1]:
+                    desig.append("u")
+                else:
+                    desig.append(i[1])
+
+                if not i[2]:
+                    title.append("tgt " + str(unlabled_tgt_ctr))
+                    unlabled_tgt_ctr += 1
+                else:
+                    title.append(i[2])
+            else:
+                print("grid column empty moving to next...")
+
     return grid, desig, title
 
 #converts LAT/LONG to MGRS

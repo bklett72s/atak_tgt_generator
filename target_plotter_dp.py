@@ -54,6 +54,7 @@ def convert_to_mgrs(grid):
         lat_long_tgt.append(""" lat="{0}" lon="{1}" """.format(str(lat_max),str(lon_min)))
     return lat_long_tgt
 
+#generates unique identifier as expected by ATAK
 def gen_uid():
     uid1 = ''.join(secrets.choice(string.ascii_uppercase + string.digits)
               for i in range(8))
@@ -78,7 +79,7 @@ def gen_mkl(lat_long_tgt, desig, title):
     uid_store = []
     
     for tgt, designate, tlt in zip(lat_long_tgt, desig, title):
-        uid_gen = gen_uid()
+        uid_gen = gen_uid() #generate new unique id
         uid_store.append(uid_gen)
 
         cot_block = """
@@ -90,20 +91,21 @@ def gen_mkl(lat_long_tgt, desig, title):
                     <usericon iconsetpath="COT_MAPPING_2525C/a-{1}/a-{1}-G" />
                     </detail></event>\n""".format(tgt, designate, tlt, uid_plc=uid_gen,  tme=dt_zulu)
         
-        dp_dir = "./dp_dump/" + uid_gen + "/" + uid_gen + ".cot"
-        os.makedirs(os.path.dirname(dp_dir), exist_ok=True)
-        dp_file = open(dp_dir, "w")
+        dp_dir = "./dp_dump/" + uid_gen + "/" + uid_gen + ".cot" #local file path for datapackage 
+        os.makedirs(os.path.dirname(dp_dir), exist_ok=True) #creates directory
+        dp_file = open(dp_dir, "w") #writes file
         dp_file.write(cot_block)
-        dp_file.close()
+        dp_file.close() #update this to "while file open" in future
         print("file_written")
 
     return uid_store
  
+#develops manifest for datapackage, manifest identifies individual cotc files
 def write_manifest(uid_store):
     dte_raw = datetime.datetime.now()
     dte = dte_raw.strftime("%Y%m%d%H%M%S")
 
-    uid_gen = gen_uid()
+    uid_gen = gen_uid() #generate new uid for the manifest file
 
     contents_full = ''
     manifest_header = """
@@ -115,7 +117,7 @@ def write_manifest(uid_store):
                     <Contents>
                     """.format(uid_gen, dt=dte)
     
-    for id in uid_store:
+    for id in uid_store: #pulls uid from uid_store and applies it to xml
         manifest_contents = """
                         <Content zipEntry="{0}/{0}.cot" ignore="false">
                             <Parameter name="uid" value="{0}" />
@@ -140,16 +142,17 @@ def write_manifest(uid_store):
 
     return dp_title 
 
+#ATAK expects zip files for datapackages so compression is conducted once file creation is complete
 def compress(dp_title):
     file_paths = [] 
 
     with ZipFile("./dp_dump/" + dp_title + ".zip", 'w') as zip:
-        os.chdir("./dp_dump/")
+        os.chdir("./dp_dump/") #done to mitigate issue of system trying to compress the parent dir
         for root, directories, files in os.walk("./"):
-            for filename in files:
+            for filename in files: #grab everything in dir and compress
                 filepath = os.path.join(root, filename) 
                 file_paths.append(filepath)
-        for file in file_paths:
+        for file in file_paths: #remove all non-compressed files
             if dp_title not in file:  
                 zip.write(file)
                 os.remove(file)
@@ -160,9 +163,13 @@ def compress(dp_title):
             print("unable to delete file " + current_dir)
     print("compression complete...")
 
-print("--------------------------- SCRIPT START ---------------------------")
-grid, desig, title = read_csv()
-lat_long_tgt = convert_to_mgrs(grid)
-uid_store = gen_mkl(lat_long_tgt, desig, title)
-dp_title = write_manifest(uid_store)
-compress(dp_title)
+def main():
+    print("--------------------------- SCRIPT START ---------------------------")
+    grid, desig, title = read_csv()
+    lat_long_tgt = convert_to_mgrs(grid)
+    uid_store = gen_mkl(lat_long_tgt, desig, title)
+    dp_title = write_manifest(uid_store)
+    compress(dp_title)
+
+if __name__ == "__main__":
+    main()

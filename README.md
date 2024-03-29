@@ -1,4 +1,4 @@
-# Title: Attack Target Generator
+# Title: ATAK Target Generator
 # Author: Brandon Klett
 # Date Created: 02/23/2024
 # Date Modified: 03/29/24
